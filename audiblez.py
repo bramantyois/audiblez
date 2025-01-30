@@ -2,7 +2,7 @@
 # audiblez - A program to convert e-books into audiobooks using
 # Kokoro-82M model for high-quality text-to-speech synthesis.
 # by Claudio Santini 2025 - https://claudio.uk
-
+import os
 import argparse
 import sys
 import time
@@ -38,7 +38,8 @@ def main(
     pick_manually: bool = False,
     save_dir: str = "result"
 ):
-
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir, exist_ok=True)
     # create kokoro instance
     kokoro_pipeline = KPipeline(lang_code=lang_code)
 
@@ -93,7 +94,9 @@ def main(
     durations = {}
 
     for i, text in enumerate(texts, start=1):
+        
         chapter_filename = filename.replace(".epub", f"_chapter_{i}.wav")
+        chapter_filename = os.path.join(save_dir, chapter_filename)
         chapter_mp3_files.append(chapter_filename)
         if Path(chapter_filename).exists():
             print(f"File for chapter {i} already exists. Skipping")
@@ -210,8 +213,9 @@ def strfdelta(tdelta, fmt="{D:02}d {H:02}h {M:02}m {S:02}s"):
     return f.format(fmt, **values)
 
 
-def create_m4b(chapter_files, filename, title, author, cover_image):
+def create_m4b(chapter_files, filename, title, author, cover_image, save_dir="./"):
     tmp_filename = filename.replace(".epub", ".tmp.mp4")
+    tmp_filename = os.path.join(save_dir, tmp_filename)
     if not Path(tmp_filename).exists():
         combined_audio = AudioSegment.empty()
         for wav_file in chapter_files:
@@ -220,6 +224,7 @@ def create_m4b(chapter_files, filename, title, author, cover_image):
         print("Converting to Mp4...")
         combined_audio.export(tmp_filename, format="mp4", codec="aac", bitrate="64k")
     final_filename = filename.replace(".epub", ".m4b")
+    final_filename = os.path.join(save_dir, final_filename)
     print("Creating M4B file...")
 
     if cover_image:
@@ -278,8 +283,9 @@ def probe_duration(file_name):
     return float(proc.stdout.strip())
 
 
-def create_index_file(title, creator, chapter_mp3_files, durations):
-    with open("chapters.txt", "w") as f:
+def create_index_file(title, creator, chapter_mp3_files, durations, save_dir="./"):
+    chapter_file = os.path.join(save_dir, "chapters.txt")
+    with open(chapter_file, "w") as f:
         f.write(f";FFMETADATA1\ntitle={title}\nartist={creator}\n\n")
         start = 0
         i = 0
@@ -323,7 +329,13 @@ def cli_main():
         action="store_true",
     )
     parser.add_argument(
-        "-s", "--speed", default=1.0, help=f"Set speed from 0.5 to 2.0", type=float
+        "-s", "--speed", default=0.9, help=f"Set speed from 0.5 to 2.0", type=float
+    )
+    parser.add_argument(
+        "-d", 
+        "--save-dir", 
+        default="result", 
+        help="Directory to save the output files (default: 'result')"
     )
 
     # if len(sys.argv) == 1:
@@ -336,6 +348,7 @@ def cli_main():
         args.voice,
         args.speed,
         args.pick,
+        args.save_dir
     )
 
 
