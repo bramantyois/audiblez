@@ -1,14 +1,4 @@
-venv
-__pycache__
-.idea
-chapters.txt
-.DS_Store
-*.pyc
-*.wav
-*.mp3
-*.epub
-*.sh
-*.json
-*.onnx
-dist
 .venv
+*.wav
+*.onnx
+*.epub
